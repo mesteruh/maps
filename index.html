@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Страны мира — флаг, столица, озвучка</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="overlay" class="overlay" aria-hidden="false">
+    <button id="startBtn" class="start-btn" aria-label="Начать">
+      ▶
+    </button>
+    <div class="overlay-text">НАЧАТЬ</div>
+  </div>
+
+  <main class="app">
+    <header class="header">
+      <h1>Страны мира</h1>
+      <p>Флаг • Страна • Столица • Автоозвучка</p>
+    </header>
+
+    <section class="card" aria-live="polite">
+      <div class="flag-wrap">
+        <img id="flag" alt="Флаг" />
+      </div>
+      <div class="info">
+        <h2 id="country">—</h2>
+        <div id="capital" class="capital">—</div>
+        <div id="progress" class="progress">0 / 0</div>
+      </div>
+    </section>
+
+    <section class="controls" aria-label="Навигация">
+      <button id="prevBtn" class="nav-btn" aria-label="Предыдущая">←</button>
+      <button id="randomBtn" class="nav-btn" aria-label="Случайная">🎲</button>
+      <button id="nextBtn" class="nav-btn" aria-label="Следующая">→</button>
+    </section>
+
+    <section class="status" aria-live="polite">
+      <div id="status"></div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
