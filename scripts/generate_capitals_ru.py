@@ -1,16 +1,23 @@
 import json
 import urllib.parse
 import urllib.request
+import re
 
 
 def main() -> None:
     query = """
-    SELECT ?code (SAMPLE(COALESCE(?capRu, ?capEn)) AS ?cap) WHERE {
+    PREFIX schema: <http://schema.org/>
+    SELECT ?code (SAMPLE(COALESCE(?capRu, ?capRuTitle, ?capEn)) AS ?cap) WHERE {
       ?country wdt:P31 wd:Q6256;
                wdt:P297 ?code;
                wdt:P36 ?capital.
       OPTIONAL { ?capital rdfs:label ?capRu FILTER (lang(?capRu) = "ru") }
       OPTIONAL { ?capital rdfs:label ?capEn FILTER (lang(?capEn) = "en") }
+      OPTIONAL {
+        ?ruArticle schema:about ?capital;
+                   schema:isPartOf <https://ru.wikipedia.org/>;
+                   schema:name ?capRuTitle.
+      }
     }
     GROUP BY ?code
     """
@@ -46,10 +53,61 @@ def main() -> None:
         if code and cap:
             result[code] = cap
 
+    # Try to convert remaining Latin capitals via enwiki -> ru langlinks.
+    latin_re = re.compile(r"[A-Za-z]")
+    for code, cap in list(result.items()):
+        if not cap or not latin_re.search(cap):
+            continue
+        ru = resolve_ru_langlink(cap)
+        if ru:
+            result[code] = ru
+
+    overrides = {
+        "AI": "Вэлли",
+        "AS": "Паго-Паго",
+        "CC": "Уэст-Айленд",
+        "EH": "Эль-Аюн",
+        "GG": "Сент-Питер-Порт",
+        "GU": "Хагатна",
+        "HK": "Виктория",
+        "IM": "Дуглас",
+        "JE": "Сент-Хелиер",
+        "KY": "Джорджтаун",
+        "MF": "Маригот",
+        "MP": "Сайпан",
+        "PF": "Папеэте",
+        "RE": "Сен-Дени",
+        "UM": "Вашингтон",
+        "WF": "Мата-Уту"
+    }
+    for code, name in overrides.items():
+        if code in result:
+            result[code] = name
+
     with open("capitals-ru.json", "w", encoding="utf-8") as f:
         json.dump(result, f, ensure_ascii=False, indent=2, sort_keys=True)
 
     print("saved", len(result), "capitals")
+
+
+def resolve_ru_langlink(name: str) -> str:
+    try:
+        q = urllib.parse.quote(name)
+        url = (
+            "https://en.wikipedia.org/w/api.php?"
+            f"action=query&titles={q}&prop=langlinks&lllang=ru&format=json"
+        )
+        req = urllib.request.Request(url, headers={"User-Agent": "flags-app/1.0"})
+        with urllib.request.urlopen(req) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+        pages = data.get("query", {}).get("pages", {})
+        for _, page in pages.items():
+            links = page.get("langlinks") or []
+            if links:
+                return links[0].get("*", "") or ""
+    except Exception:
+        return ""
+    return ""
 
 
 if __name__ == "__main__":
