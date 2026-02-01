@@ -99,6 +99,7 @@ function render(options = {}) {
   if (c.flagSvg || c.flagPng) {
     const token = ++state.renderToken;
     const bust = c.code ? `?v=${encodeURIComponent(c.code)}&t=${token}` : `?t=${token}`;
+    const localSvg = c.code ? `flags/${c.code}.svg${bust}` : "";
     const srcSvg = c.flagSvg ? (c.flagSvg + bust) : "";
     const srcPng = c.flagPng ? (c.flagPng + bust) : "";
     el.flag.onload = () => {
@@ -106,13 +107,17 @@ function render(options = {}) {
     };
     el.flag.onerror = () => {
       if (token !== state.renderToken) return;
+      if (localSvg && el.flag.src !== srcSvg && el.flag.src !== srcPng) {
+        el.flag.src = srcSvg || srcPng;
+        return;
+      }
       if (srcSvg && srcPng && el.flag.src !== srcPng) {
         el.flag.src = srcPng;
-      } else {
-        el.flag.removeAttribute("src");
+        return;
       }
+      el.flag.removeAttribute("src");
     };
-    el.flag.src = srcSvg || srcPng;
+    el.flag.src = localSvg || srcSvg || srcPng;
     el.flag.alt = `Флаг ${title}`;
   } else {
     el.flag.removeAttribute("src");
